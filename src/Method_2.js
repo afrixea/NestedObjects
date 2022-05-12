@@ -1,6 +1,6 @@
 import "./styles.css";
 import styled from "styled-components";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo, useRef } from "react";
 
 const UseberryContainer = styled.div`
   background: ${(props) => props.bgcolor};
@@ -43,17 +43,8 @@ const WrapperOverflow = styled.div`
 `;
 
 export default function App() {
-  const [object, setObject] = useState([]);
-  const [Childs, setChilds] = useState({ selectionChild: null });
-  const GetChilds = (current, parrent) => {
-    if (current.options && current.options.length > 0) {
-      current.parrent = parrent.guid;
-      var Childs_ = { ...Childs, ...{ [current.guid]: current } };
-      setChilds(Childs_);
-      console.log(Childs_);
-    }
-  };
-  const Wrapper = ({ useberryItem, parrent }) => {
+  const [Childs, setChilds] = useState(null);
+  const Wrapper = ({ useberryItem }) => {
     return (
       <UseberryItemChildWrapper>
         {useberryItem.options?.map((useberryItem_child) => (
@@ -61,7 +52,7 @@ export default function App() {
             key={useberryItem_child.guid}
             bgcolor={useberryItem_child.color}
             onClick={() => {
-              GetChilds(useberryItem_child, parrent);
+              GetChilds(useberryItem_child);
             }}
           >
             {useberryItem_child.title}
@@ -70,62 +61,71 @@ export default function App() {
       </UseberryItemChildWrapper>
     );
   };
-
-  useEffect(() => {
-    var tempObjparent = {
-      set set_selectionChild(a) {
-        this.selectionChild = a;
-        return this.selectionChild_;
-      },
-      get selectionChild_() {
-        return this.selectionChild;
-      },
-      get g_() {
-        return this;
-      }
-    };
+  const tempObjparent = {
+    Data: {},
+    set selectionChild(a) {
+      this.Data.selectionChild_ = a;
+      return this.selectionChild_;
+    },
+    get selectionChild_() {
+      return this.Data.selectionChild_;
+    },
+    get g_() {
+      return this.Data;
+    }
+  };
+  let new_ = useRef(tempObjparent.g_);
+  let Childs_ = useRef(null);
+  const GetChilds = (current) => {
+    if (current?.options && current?.options.length > 0) {
+      Nested([current], 0);
+      Childs_.current = {
+        ...Childs,
+        ...{ [current.guid]: current }
+      };
+      setChilds(Childs_.current);
+      if (!Childs[current.guid]) console.log(new_.current);
+    }
+  };
+  const Nested = (actualData, i) => {
+    new_.current.title = actualData[i].title;
+    new_.current.guid = actualData[i].guid;
+    new_.current.color = actualData[i].color;
+    if (i < actualData.length - 1) {
+      var n = i + 1;
+      new_.current = new_.current.selectionChild = {
+        title: actualData[n].title,
+        guid: actualData[n].guid,
+        color: actualData[n].color
+      };
+    }
+  };
+  useMemo(() => {
     fetch(`https://research.useberry.com/bill-scripts/assignment.php`)
       .then((response) => response.json())
       .then((actualData) => {
-        var new_ = tempObjparent;
-        console.log(actualData);
         for (var i = 0; i < actualData.length; i++) {
-          console.log(i);
-          new_.title = actualData[i].title;
-          new_.guid = actualData[i].guid;
-          new_.color = actualData[i].color;
-          new_.i_ = i;
-          if (i < actualData.length - 1) {
-            var n = i + 1;
-            new_ = new_.set_selectionChild = {
-              title: actualData[n].title,
-              guid: actualData[n].guid,
-              color: actualData[n].color,
-              i_: i
-            };
-            console.log(i);
-          }
+          Nested(actualData, i);
+          Childs_.current = {
+            ...Childs_.current,
+            ...{ [actualData[i].guid]: actualData[i] }
+          };
         }
-
-        // setChilds(tempObjparent);
-        // setObject(actualData);
-        console.log(tempObjparent);
+        setChilds(Childs_.current);
+        console.log(tempObjparent.Data);
       });
   }, []);
 
   return (
     <div className="App">
-      ggg
       {
         <UseberryContainer>
           <WrapperOverflow>
-            {/* {Object.entries(Childs).map((useberryItem) => (
-              <Wrapper
-                key={useberryItem.selectionChild.guid}
-                useberryItem={useberryItem}
-                parrent={useberryItem}
-              />
-            ))} */}
+            {Childs
+              ? Object.entries(Childs).map(([key, child]) => {
+                  return <Wrapper key={child.guid} useberryItem={child} />;
+                })
+              : null}
           </WrapperOverflow>
         </UseberryContainer>
       }

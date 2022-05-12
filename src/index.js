@@ -11,6 +11,5 @@ root.render(
   <StrictMode>
     {/* <App /> */}
     <Method_2 />
-    <div>gfdgfdgfdgd</div>
   </StrictMode>
 );
