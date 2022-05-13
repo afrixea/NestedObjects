@@ -1,6 +1,7 @@
 import "./styles.css";
 import styled from "styled-components";
-import React, { useState, useMemo, useRef } from "react";
+import axios from "axios";
+import React, { useState, useRef, useEffect } from "react";
 
 const UseberryContainer = styled.div`
   background: ${(props) => props.bgcolor};
@@ -9,17 +10,19 @@ const UseberryContainer = styled.div`
   border: 2px solid palevioletred;
   border-radius: 3px;
   height: fit-content;
-  width: 95vw;
+  width: 100vw;
   overflow-x: auto;
   color: white;
+  margin: 0;
+  margin-bottom: 10px;
 `;
 
 const UseberryItemChildWrapper = styled.div`
-  background: ${(props) => props.bgcolor};
+  background: linear-gradient(-45deg, red, gray);
   font-size: 1em;
   margin: 6px;
   padding: 20px;
-  border: 2px solid palevioletred;
+  border: 1px solid blue;
   border-radius: 3px;
   display: flex;
   flex-direction: column;
@@ -29,12 +32,25 @@ const UseberryItemChildWrapper = styled.div`
 `;
 
 const UseberryItemChild = styled.span`
-  background: ${(props) => props.bgcolor};
+  background: linear-gradient(
+    45deg,
+    ${(props) => props.bgcolor},
+    rgb(60, 80, 90)
+  );
   font-size: 1em;
   margin: 6px;
   padding: 20px;
-  border: 2px solid palevioletred;
+  border: 1px solid white;
   border-radius: 3px;
+  cursor: pointer;
+`;
+const Button = styled.button`
+  background: linear-gradient(red, blue);
+  color: white;
+  border-radius: 50px;
+  border: 0;
+  height: 50px;
+  width: 100px;
   cursor: pointer;
 `;
 
@@ -42,17 +58,29 @@ const WrapperOverflow = styled.div`
   width: max-content;
 `;
 
-export default function App() {
+let sc = {
+    selectionChild: null
+  },
+  dt = {
+    data: sc
+  },
+  lastobject = sc,
+  new_,
+  Loaded = false;
+
+const App = () => {
   const [Childs, setChilds] = useState(null);
+  let Childs_ = useRef(null);
   const Wrapper = ({ useberryItem }) => {
     return (
       <UseberryItemChildWrapper>
+        {useberryItem.title}
         {useberryItem.options?.map((useberryItem_child) => (
           <UseberryItemChild
             key={useberryItem_child.guid}
             bgcolor={useberryItem_child.color}
             onClick={() => {
-              GetChilds(useberryItem_child);
+              SetChilds(useberryItem_child);
             }}
           >
             {useberryItem_child.title}
@@ -61,74 +89,76 @@ export default function App() {
       </UseberryItemChildWrapper>
     );
   };
-  const tempObjparent = {
-    Data: {},
-    set selectionChild(a) {
-      this.Data.selectionChild_ = a;
-      return this.selectionChild_;
-    },
-    get selectionChild_() {
-      return this.Data.selectionChild_;
-    },
-    get g_() {
-      return this.Data;
-    }
-  };
-  let new_ = useRef(tempObjparent.g_);
-  let Childs_ = useRef(null);
-  const GetChilds = (current) => {
+
+  const SetChilds = (current) => {
     if (current?.options && current?.options.length > 0) {
-      Nested([current], 0);
       Childs_.current = {
         ...Childs,
         ...{ [current.guid]: current }
       };
       setChilds(Childs_.current);
-      if (!Childs[current.guid]) console.log(new_.current);
+      if (!Childs[current.guid]) {
+        Nested([current], 0);
+      }
     }
   };
+
+  const PrintChilds = () => {
+    console.log(dt.data);
+  };
+
   const Nested = (actualData, i) => {
-    new_.current.title = actualData[i].title;
-    new_.current.guid = actualData[i].guid;
-    new_.current.color = actualData[i].color;
-    if (i < actualData.length - 1) {
-      var n = i + 1;
-      new_.current = new_.current.selectionChild = {
-        title: actualData[n].title,
-        guid: actualData[n].guid,
-        color: actualData[n].color
-      };
-    }
+    new_ = {
+      title: actualData[i].title,
+      guid: actualData[i].guid,
+      color: actualData[i].color,
+      selectionChild: {}
+    };
+    lastobject.selectionChild = new_;
+    lastobject = new_;
   };
-  useMemo(() => {
-    fetch(`https://research.useberry.com/bill-scripts/assignment.php`)
-      .then((response) => response.json())
-      .then((actualData) => {
-        for (var i = 0; i < actualData.length; i++) {
-          Nested(actualData, i);
-          Childs_.current = {
-            ...Childs_.current,
-            ...{ [actualData[i].guid]: actualData[i] }
-          };
-        }
-        setChilds(Childs_.current);
-        console.log(tempObjparent.Data);
-      });
+  useEffect(() => {
+    if (!Loaded) {
+      Loaded = true;
+      axios
+        .get(`https://research.useberry.com/bill-scripts/assignment.php`)
+        .then((actualData) => {
+          for (var i = 0; i < actualData.data.length; i++) {
+            Nested(actualData.data, i);
+            Childs_.current = {
+              ...Childs_.current,
+              ...{ [actualData.data[i].guid]: actualData.data[i] }
+            };
+          }
+          setChilds(Childs_.current);
+        });
+    }
   }, []);
 
   return (
     <div className="App">
       {
-        <UseberryContainer>
-          <WrapperOverflow>
-            {Childs
-              ? Object.entries(Childs).map(([key, child]) => {
-                  return <Wrapper key={child.guid} useberryItem={child} />;
-                })
-              : null}
-          </WrapperOverflow>
-        </UseberryContainer>
+        <>
+          <UseberryContainer>
+            <WrapperOverflow>
+              {Childs
+                ? Object.entries(Childs).map(([key, child]) => {
+                    return <Wrapper key={child.guid} useberryItem={child} />;
+                  })
+                : null}
+            </WrapperOverflow>
+          </UseberryContainer>
+
+          <Button
+            onClick={() => {
+              PrintChilds();
+            }}
+          >
+            SAVE
+          </Button>
+        </>
       }
     </div>
   );
-}
+};
+export default App;

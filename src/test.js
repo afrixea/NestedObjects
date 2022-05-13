@@ -1,38 +1,39 @@
-const objToUpdate = {
-  title: "",
-  guid: "",
-  color: "",
-  selectionChild
-};
-
-const updateArr = [
-  {
-    content: "New Co",
-    id: "0064H00000ysL",
-    note: "Here's your update"
-  },
-  {
-    content: "91%",
-    id: "a0H4H00000Roi",
-    note: "New note here"
-  }
-];
-
-function updateNestedObj(obj, updates) {
-  const updateToApply = updates.find((upd) => upd.id === obj.id);
-  if (updateToApply) {
-    obj.title = updateToApply.content;
-    obj.note = updateToApply.note;
-  }
-  // Apply updates to any child objects
-  for (let k in obj) {
-    if (typeof obj[k] === "object") {
-      updateNestedObj(obj[k], updates);
-    }
+class tempObjparent_ {
+  constructor() {
+    const self = this;
+    this.state = {
+      _data: {
+        selectionChild: null
+      },
+      set data(a) {
+        this._data.selectionChild = a;
+      },
+      get data() {
+        return this._data;
+      }
+    };
   }
 }
 
-updateNestedObj(objToUpdate, updateArr);
+const newNested = new tempObjparent_();
+let a = {
+    selectionChild: null
+  },
+  lastobject;
+newNested.state.data = a;
+a.selectionChild = {
+  n: "324324",
+  selectionChild: {}
+};
+lastobject = a;
+let new_;
+for (var i = 0; i < 10; i++) {
+  new_ = {
+    n: "gg" + i,
+    selectionChild: {}
+  };
+  lastobject.selectionChild = new_;
+  lastobject = new_;
+}
 
-console.log(objToUpdate);
-https://stackoverflow.com/questions/69488600/javascript-update-nested-object-values-from-array-of-update-objects
+console.log(newNested.state.data);
